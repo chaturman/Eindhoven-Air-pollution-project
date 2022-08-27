@@ -1,0 +1,474 @@
+#PYTHON DATA SCRAPING 
+
+#importing needed libraries
+import requests
+import cbsodata
+import csv
+import json
+import os
+import sys
+import pandas as pd
+
+
+filepath = os.chdir(r'C:\Users\Dell\Desktop\YEAR1\QUARTILE 2\AAEOGD\ASSIGNMENT\SCRIPT\PYTHON')#chaging directory to folder where files are located
+
+data=[]                                                     # creating a list to collect data 
+for x in range(1,36):                                       #running a loop to extract data from different airboxes ID
+    url = 'http://data.aireas.com/api/v2/airboxes/history/'+str(x)+'/1420070400/1420156740' #Dividing the url into strings and variable x is the number of Airbox ID
+    response = requests.request('GET', url)                  #Sending a request to Web API
+    jsonObj2 = json.loads(response.text)                     #Collecting the response in variable
+    data.append(jsonObj2)                                    #adding all data in in variable
+
+with open('new.json', 'w') as jsonfile:                       #writing a new json file
+    json.dump(jsonObj2, jsonfile)                             # saving all the data from the variable to  json file
+
+#The timeline was decided as January 2019 
+#due to the consistent availability of all datasets except Open Sense Map (visually compared with data of January 2020). 
+#The data can be considered for analysis since it was recorded only last year. 
+#Also, different datasets had to be converted in same formats for interoperability and analysis on the same Language/Platform.
+
+
+#Collecting road data
+url = 'https://geodata.nationaalgeoregister.nl/bestuurlijkegrenzen/wfs?request=GetFeature&service=wfs&outputFormat=json&typename=bestuurlijkegrenzen:gemeenten'
+response = requests.request('GET', url)
+jsonObj = json.loads(response.text) # convert text response into a dictionary
+
+with open('provincial.json', 'w') as jsonfile:
+    json.dump(jsonObj, jsonfile)
+mydata = cbsodata.get_data('83452NED')
+keys = mydata[0].keys()
+with open('83452NED.csv', 'w', newline='') as output_file:
+    dict_writer = csv.DictWriter(output_file, keys)
+    dict_writer.writeheader()
+    dict_writer.writerows(mydata)
+
+#psql and pgAdmin
+psql -h gi.itc.utwente.nl -p 5434 -d c122 -U s2330865
+
+Hypothetical analysis:
+
+#Vector road layer drawn on raster’s, base map with roads on top
+#Interpolation and then overlaying roads, distance from roads
+#Can burn the roads into Raster bands as well, then calculate proximity
+#Overlay, proximity, Intersections, 
+
+
+
+
+
+#R Code
+getwd()
+setwd('C:\Users\Dell\Desktop\STATS LECTURES+EXERCISES\STATS EXERCISES\4DATA\REGRESSION')
+readfile.df = read.csv("hourlyJANUARY2019.csv", header = TRUE)
+head(readfile.df)
+
+summary(readfile.df$FALSTAFFNO2)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# -0.40   35.80   49.00   46.38   59.52   93.10
+summary(readfile.df$GENOVEVALAANNO2)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 3.00   14.00   24.00   27.14   38.00   83.00
+
+hist(readfile.df$FALSTAFFNO2, main = "AIRBOX5_FALSTAFF, JAN'19", xlab = "Values")
+hist(readfile.df$GENOVEVALAANNO2, main = "RIVM_GENOVEVALAANNO2, JAN'19", xlab = "Values")
+plot(readfile.df$FALSTAFFNO2, readfile.df$GENOVEVALAANNO2, xlab="AIRBOX5_FALSTAFF", ylab="RIVM1_GENOVEVALAANNO2", main="Location 1")
+plot(readfile.df$BEUKENLAANNO2, readfile.df$NOORDBRABANTLAANNO2, xlab="AIRBOX16_BEUKENLAAN", ylab="RIVM2_NOORDBRABANTLAAN", main="Location 2")
+
+#SHAPIRO TEST FOR NORMALITY CHECK
+# the two p-values are greater than the significance level 0.05 implying that the distribution of the data are not significantly different from normal distribution. 
+# In other words, we can assume the normality.
+shapiro.test(readfile.df$FALSTAFFNO2)
+# Shapiro-Wilk normality test
+# 
+# data:  readfile.df$FALSTAFFNO2
+# W = 0.94306, p-value = 8.604e-16
+
+shapiro.test(readfile.df$BEUKENLAANNO2)
+# Shapiro-Wilk normality test
+# 
+# data:  readfile.df$BEUKENLAANNO2
+# W = 0.98193, p-value = 1.241e-07
+
+shapiro.test(readfile.df$NOORDBRABANTLAANNO2)
+# Shapiro-Wilk normality test
+# 
+# data:  readfile.df$NOORDBRABANTLAANNO2
+# W = 0.94921, p-value = 7.897e-15
+
+
+#CORRELATIONVECTORS
+y1 = readfile.df$GENOVEVALAANNO2
+y2 = readfile.df$NOORDBRABANTLAANNO2
+x1 = readfile.df$FALSTAFFNO2
+x2 = readfile.df$BEUKENLAANNO2
+
+#COVARIANCES
+rho_1 = sum((x1-mean(x1))*(y1-mean(y1))); rho_1#-22471.14
+rho_2 = sum((x2-mean(x2))*(y2-mean(y2))); rho_2#59166.27
+
+#VARIANCES
+sigmax1 = sqrt(sum((x1-mean(x1))^2)); sigmax1#509.0288
+sigmay1 = sqrt(sum((y1-mean(y1))^2)); sigmay1#422.2778
+sigmax2 = sqrt(sum((x2-mean(x2))^2));sigmax2#729.059
+sigmay2 = sqrt(sum((y2-mean(y2))^2));sigmay2#455.5711
+
+#CORRELATION location1
+rel1 = rho_1/(sigmax1*sigmay1); rel1#-0.1045405
+#CORRELATION location2
+rel2 = rho_2/(sigmax2*sigmay2);rel2#0.1781375    
+
+#PEARSON
+# -1 indicates a strong negative correlation : this means that every time x increases, y decreases (left panel figure)
+# 0 means that there is no association between the two variables (x and y) (middle panel figure)
+# 1 indicates a strong positive correlation : this means that y increases with x (right panel figure)
+# The p-value of the test is 1.29410^{-10}, which is less than the significance level alpha = 0.05. 
+# We can conclude that wt and mpg are significantly correlated with a correlation coefficient of -0.87 and p-value of 1.29410^{-10} .
+pearson1 = cor.test(readfile.df$FALSTAFFNO2, readfile.df$GENOVEVALAANNO2, method = c("pearson"));pearson1
+# Pearson's product-moment correlation
+# 
+# data:  readfile.df$FALSTAFFNO2 and readfile.df$GENOVEVALAANNO2
+# t = -2.7851, df = 702, p-value = 0.005496
+# alternative hypothesis: true correlation is not equal to 0
+# 95 percent confidence interval:
+#  -0.17706459 -0.03088717
+# sample estimates:
+#        cor 
+# -0.1045405
+ggscatter(readfile.df, x = "FALSTAFFNO2", y = "GENOVEVALAANNO2", main = "Location 1", add = "reg.line", conf.int = TRUE, cor.coef = TRUE, cor.method = "pearson", xlab = "Airbox5", ylab = "RIVM1")
+ggscatter(readfile.df, x = "BEUKENLAANNO2", y = "NOORDBRABANTLAANNO2", main = "Location 2", add = "reg.line", conf.int = TRUE, cor.coef = TRUE, cor.method = "pearson", xlab = "Airbox16", ylab = "RIVM2")
+pearson2 = cor.test(readfile.df$BEUKENLAANNO2, readfile.df$NOORDBRABANTLAANNO2, method = c("pearson"));pearson2
+# Pearson's product-moment correlation
+# 
+# data:  readfile.df$BEUKENLAANNO2 and readfile.df$NOORDBRABANTLAANNO2
+# t = 4.7965, df = 702, p-value = 1.973e-06
+# alternative hypothesis: true correlation is not equal to 0
+# 95 percent confidence interval:
+#  0.1056361 0.2487551
+# sample estimates:
+#       cor 
+# 0.1781375
+ggscatter(readfile.df, x = "BEUKENLAANNO2", y = "NOORDBRABANTLAANNO2", main = "Location 2", add = "reg.line", conf.int = TRUE, cor.coef = TRUE, cor.method = "pearson", xlab = "Airbox16", ylab = "RIVM2")
+
+#KENDALL
+kendall1 = cor.test(readfile.df$FALSTAFFNO2, readfile.df$GENOVEVALAANNO2, method = c("kendall"));kendall1
+# Kendall's rank correlation tau
+# 
+# data:  readfile.df$FALSTAFFNO2 and readfile.df$GENOVEVALAANNO2
+# z = -2.0767, p-value = 0.03783
+# alternative hypothesis: true tau is not equal to 0
+# sample estimates:
+#       tau 
+# -0.052902
+kendall2 = cor.test(readfile.df$BEUKENLAANNO2, readfile.df$NOORDBRABANTLAANNO2, method = c("kendall"));kendall2
+# Kendall's rank correlation tau
+# 
+# data:  readfile.df$BEUKENLAANNO2 and readfile.df$NOORDBRABANTLAANNO2
+# z = 4.8884, p-value = 1.016e-06
+# alternative hypothesis: true tau is not equal to 0
+# sample estimates:
+#       tau 
+# 0.1244136
+
+#SPEARMAN
+spearman1 = cor.test(readfile.df$FALSTAFFNO2, readfile.df$GENOVEVALAANNO2, method = c("spearman"));spearman1
+# Spearman's rank correlation rho
+# 
+# data:  readfile.df$FALSTAFFNO2 and readfile.df$GENOVEVALAANNO2
+# S = 63023910, p-value = 0.02623
+# alternative hypothesis: true rho is not equal to 0
+# sample estimates:
+#        rho 
+# -0.0837759
+spearman2 = cor.test(readfile.df$BEUKENLAANNO2, readfile.df$NOORDBRABANTLAANNO2, method = c("spearman"));spearman2
+# Spearman's rank correlation rho
+# 
+# data:  readfile.df$BEUKENLAANNO2 and readfile.df$NOORDBRABANTLAANNO2
+# S = 47439663, p-value = 8.599e-07
+# alternative hypothesis: true rho is not equal to 0
+# sample estimates:
+#       rho 
+# 0.1842149 
+
+#CHISQUARE
+cs1 = chisq.test(readfile.df$FALSTAFFNO2,readfile.df$GENOVEVALAANNO2);cs1
+# Pearson's Chi-squared test
+# 
+# data:  readfile.df$FALSTAFFNO2 and readfile.df$GENOVEVALAANNO2
+# X-squared = 27981, df = 26600, p-value = 1.942e-09
+cs2 = chisq.test(readfile.df$BEUKENLAANNO2,readfile.df$NOORDBRABANTLAANNO2);cs2
+# Pearson's Chi-squared test
+# 
+# data:  readfile.df$BEUKENLAANNO2 and readfile.df$NOORDBRABANTLAANNO2
+# X-squared = 36403, df = 36000, p-value = 0.06681
+
+
+
+
+##SIMPLE REGRESSION MODELS : LEAST SQUARES
+
+simplereg1  = lm(GENOVEVALAANNO2~FALSTAFFNO2, data = readfile.df);summary(simplereg1)
+# Call:
+#   lm(formula = GENOVEVALAANNO2 ~ FALSTAFFNO2, data = readfile.df)
+# 
+# Residuals:
+#   Min     1Q Median     3Q    Max 
+# -24.58 -12.50  -2.83  10.83  57.11 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept) 31.16613    1.56302  19.940   <2e-16 ***
+#   FALSTAFFNO2 -0.08672    0.03114  -2.785   0.0055 ** 
+#   ---
+#   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# 
+# Residual standard error: 15.85 on 702 degrees of freedom
+# Multiple R-squared:  0.01093,	Adjusted R-squared:  0.00952 
+# F-statistic: 7.757 on 1 and 702 DF,  p-value: 0.005496
+
+
+simplereg2  = lm(NOORDBRABANTLAANNO2~BEUKENLAANNO2, data = readfile.df);summary(simplereg2)
+# Call:
+#   lm(formula = NOORDBRABANTLAANNO2 ~ BEUKENLAANNO2, data = readfile.df)
+# 
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -27.141 -12.756  -2.267  10.189  82.779 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)   25.81132    1.30037  19.849  < 2e-16 ***
+#   BEUKENLAANNO2  0.11131    0.02321   4.797 1.97e-06 ***
+#   ---
+#   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# 
+# Residual standard error: 16.92 on 702 degrees of freedom
+# Multiple R-squared:  0.03173,	Adjusted R-squared:  0.03035 
+# F-statistic: 23.01 on 1 and 702 DF,  p-value: 1.973e-06
+
+##TO CHECK SUM OF RESIDUALS
+sum(readfile.df$GENOVEVALAANNO2- predict.lm(simplereg1))#-4.565237e-12
+sum(readfile.df$NOORDBRABANTLAANNO2- predict.lm(simplereg2))#1.332268e-12
+sum(simplereg1$residuals)#6.02407e-13, ALTERNATIVELY sum(residuals(simplereg1))#6.02407e-13
+sum(simplereg2$residuals)#-7.438772e-13, ALTERNATIVELY sum(residuals(simplereg2))#-7.438772e-13
+
+##TO CHECK RESIDUAL STANDARD ERROR FOR THE MODEL
+df1 = dim(readfile.df)[1]-2; df1#702
+s1 = sqrt(sum((simplereg1$residuals)^2)/df1); s1#15.85052
+
+df2 = dim(readfile.df)[2]-2; df2#6                            ##SOME PROBLEM WITH INDEXING
+s1 = sqrt(sum((simplereg2$residuals)^2)/df2); s1#183.0114          
+
+#AIC & BIC
+AIC(simplereg1)#5892.451
+BIC(simplereg1)#5906.122
+AIC(simplereg2)#5984.336
+BIC(simplereg2)#5998.006
+
+ory1 = readfile.df$GENOVEVALAANNO2; summary(ory1)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 3.00   14.00   24.00   27.14   38.00   83.00
+ory2 = readfile.df$NOORDBRABANTLAANNO2;summary(ory2)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 3.00   18.00   29.00   31.25   42.00  114.00
+###RESPONSE TRANSFORMATION TO SQRT AND LOG
+sqry1 = sqrt(readfile.df$GENOVEVALAANNO2);summary(sqry1)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 1.732   3.742   4.899   4.971   6.164   9.110 
+sqry2 = sqrt(readfile.df$NOORDBRABANTLAANNO2);summary(sqry2)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 1.732   4.243   5.385   5.373   6.481  10.677 
+logy1 = log((readfile.df$GENOVEVALAANNO2));summary(logy1)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 1.099   2.639   3.178   3.097   3.638   4.419 
+logy2 = log((readfile.df$NOORDBRABANTLAANNO2));summary(logy2)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 1.099   2.890   3.367   3.273   3.738   4.736  
+# plotNormalHistogram(ory1)
+plotNormalHistogram(ory2)
+#plotNormalHistogram(sqry1)
+plotNormalHistogram(sqry2)
+#plotNormalHistogram(logy1)
+plotNormalHistogram(logy2)
+
+#DEFINE THE NEED FOR TRANSFORMING THE VARIABLE 
+#I AM CHOOSING THE SQRT VARIABLE COZ ITS GIVING CLOSE TO NORMAL DISTRIBUTION, WITH LOG ITS SKEWED
+###BUILD SQRT AND LOG REGRESSION MODEL FOR SIMPLEREG2
+
+sqrsimplereg2 = lm(sqry2~BEUKENLAANNO2, data = readfile.df) ;summary(sqrsimplereg2)
+AIC(sqrsimplereg2)#2584.581
+BIC(sqrsimplereg2)#2598.251
+# Call:
+#   lm(formula = sqry2 ~ BEUKENLAANNO2, data = readfile.df)
+# 
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -3.3861 -1.0566 -0.0124  1.0812  5.3063 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)   4.832210   0.116258  41.565  < 2e-16 ***
+#   BEUKENLAANNO2 0.011081   0.002075   5.341 1.25e-07 ***
+#   ---
+#   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# 
+# Residual standard error: 1.513 on 702 degrees of freedom
+# Multiple R-squared:  0.03905,	Adjusted R-squared:  0.03768 
+# F-statistic: 28.52 on 1 and 702 DF,  p-value: 1.251e-07
+
+logsimplereg2 = lm(logy2~BEUKENLAANNO2, data = readfile.df);summary(logsimplereg2)
+AIC(logsimplereg2)#1299.106
+BIC(logsimplereg2)#1312.776
+# Call:
+#   lm(formula = logy2 ~ BEUKENLAANNO2, data = readfile.df)
+# 
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -2.0643 -0.3539  0.0798  0.4388  1.4646 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)   3.0399846  0.0466573  65.156  < 2e-16 ***
+#   BEUKENLAANNO2 0.0047661  0.0008327   5.724 1.54e-08 ***
+#   ---
+#   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# 
+# Residual standard error: 0.6071 on 702 degrees of freedom
+# Multiple R-squared:  0.04459,	Adjusted R-squared:  0.04323 
+# F-statistic: 32.76 on 1 and 702 DF,  p-value: 1.543e-08
+
+
+#MULTIPLE LINEAR REG MODEL 2
+
+mulreg2 = lm(NOORDBRABANTLAANNO2~BEUKENLAANNO2+BEUKENLAANTEMP+BEUKENLAANRELHUM, data = readfile.df)
+AIC(mulreg2)#5948.528
+BIC(mulreg)#
+summary(mulreg2)
+# Call:
+#   lm(formula = NOORDBRABANTLAANNO2 ~ BEUKENLAANNO2 + BEUKENLAANTEMP + 
+#        BEUKENLAANRELHUM, data = readfile.df)
+# 
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -30.189 -11.986  -3.028   9.021  76.800 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)      16.28105    6.35093   2.564 0.010568 *  
+#   BEUKENLAANNO2     0.03447    0.02640   1.306 0.192031    
+# BEUKENLAANTEMP   -0.97745    0.25571  -3.822 0.000144 ***
+#   BEUKENLAANRELHUM  0.22923    0.07818   2.932 0.003479 ** 
+#   ---
+#   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# 
+# Residual standard error: 16.47 on 700 degrees of freedom
+# Multiple R-squared:  0.08496,	Adjusted R-squared:  0.08104 
+# F-statistic: 21.67 on 3 and 700 DF,  p-value: 1.992e-13
+
+#MULTIPLE LINEAR REG MODEL 1
+
+mulreg1 = lm(GENOVEVALAANNO2~FALSTAFFNO2+FALSTAFFTEMP+FALSTAFFRELHUM, data = readfile.df)
+AIC(mulreg1)#5876.993
+BIC(mulreg1)#5899.777
+summary(mulreg1)
+# Call:
+#   lm(formula = GENOVEVALAANNO2 ~ FALSTAFFNO2 + FALSTAFFTEMP + FALSTAFFRELHUM, 
+#      data = readfile.df)
+# 
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -25.220 -12.102  -3.145  10.434  54.188 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)    41.98111    4.30413   9.754  < 2e-16 ***
+#   FALSTAFFNO2    -0.11778    0.03224  -3.654 0.000278 ***
+#   FALSTAFFTEMP   -0.40871    0.13429  -3.043 0.002427 ** 
+#   FALSTAFFRELHUM -0.12731    0.05071  -2.510 0.012288 *  
+#   ---
+#   Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+# 
+# Residual standard error: 15.66 on 700 degrees of freedom
+# Multiple R-squared:  0.03789,	Adjusted R-squared:  0.03377 
+# F-statistic:  9.19 on 3 and 700 DF,  p-value: 5.721e-06
+
+
+yy1= readfile.df$GENOVEVALAANNO2
+yy2= readfile.df$NOORDBRABANTLAANNO2
+xx1= readfile.df$FALSTAFFNO2
+BEUKENLAANNO2= readfile.df$BEUKENLAANNO2
+tt1= readfile.df$FALSTAFFTEMP
+BEUKENLAANTEMP= readfile.df$BEUKENLAANTEMP
+rh1= readfile.df$FALSTAFFRELHUM
+BEUKENLAANRELHUM= readfile.df$BEUKENLAANRELHUM
+
+
+
+#ESTIMATION AND PREDICTION
+set.seed(123)
+newdata = data.frame(BEUKENLAANNO2=runif(n=10, min=min(BEUKENLAANNO2), max=max(BEUKENLAANNO2)), BEUKENLAANTEMP=runif(n=10, min=min(BEUKENLAANTEMP), max=max(BEUKENLAANTEMP)), BEUKENLAANRELHUM=runif(n=10, min=min(BEUKENLAANRELHUM), max=max(BEUKENLAANRELHUM))); newdata
+# BEUKENLAANNO2 BEUKENLAANTEMP BEUKENLAANRELHUM
+# 1      35.285762     6.89041847         90.60925
+# 2      96.725040     1.29654248         82.43291
+# 3      50.181468     3.78780976         80.25946
+# 4     108.346235     2.62195710         94.96185
+# 5     115.395336    -2.59650678         80.89113
+# 6       5.589782     6.25705542         83.08653
+# 7      64.798543    -1.00596527         76.25138
+# 8     109.499817    -3.27271858         78.33254
+# 9      67.661076    -0.09680081         65.65748
+# 10     56.026628     6.86453554         59.75404
+predy = predict.lm(mulreg2, newdata = newdata, interval = "prediction", level = 0.95);predy
+# fit        lwr      upr
+# 1  31.53236 -1.0514089 64.11613
+# 2  37.24365  4.7921617 69.69515
+# 3  32.70601  0.3179297 65.09409
+# 4  39.22067  6.5598101 71.88154
+# 5  41.33906  8.8295703 73.84855
+# 6  29.40342 -3.0930065 61.89985
+# 7  36.97678  4.5672209 69.38633
+# 8  41.21031  8.7025735 73.71805
+# 9  33.75838  1.3177474 66.19900
+# 10 25.19975 -7.2331715 57.63267
+
+esty = predict.lm(mulreg2, newdata = newdata, interval = "confidence", level = 0.95);esty
+# fit      lwr      upr
+# 1  31.53236 27.54541 35.51931
+# 2  37.24365 34.54309 39.94422
+# 3  32.70601 30.92237 34.48965
+# 4  39.22067 34.64621 43.79514
+# 5  41.33906 38.01331 44.66481
+# 6  29.40342 26.20788 32.59897
+# 7  36.97678 34.83834 39.11521
+# 8  41.21031 37.90174 44.51888
+# 9  33.75838 31.19166 36.32509
+# 10 25.19975 22.73235 27.66715
+
+
+# #ESTIMATION AND PREDICTION FOR SIMPLE REGRESSION AS PER EXERCISE
+# #RESULTS FOR BOTH ARE SAME , BUT INTERVALS DIFFER, 
+# #PREDICTION WIDER SINCE PREDICTION STANDARD DEVIATIONS ALSO INCLUDE UNCERTAINITIES ASSOCIATED WITH NEW DATA TO PREDICT
+
+
+
+
+
+
+
+
+
+#CALCULLATING MEAN SQUARE ERROR
+mse(readfile.df$GENOVEVALAANNO2, predict(simplereg1, readfile.df))#250.5252
+mse(readfile.df$NOORDBRABANTLAANNO2, predict(simplereg2, readfile.df))#285.4531
+mse(log(readfile.df$NOORDBRABANTLAANNO2), predict(logsimplereg2, readfile.df))#0.3674829
+
+readdaily.df = read.csv("dailyJANUARY2019.csv", header = TRUE)
+slrm1  = lm(readdaily.df$GENOVEVALAANNO2~readdaily.df$FALSTAFFNO2, data = readdaily.df)
+mse(readdaily.df$GENOVEVALAANNO2, predict(slrm1, readdaily.df))#143.6546
+slrm2  = lm(readdaily.df$NOORDBRABANTLAANNO2~readdaily.df$BEUKENLAANNO2, data = readdaily.df)
+mse(readdaily.df$NOORDBRABANTLAANNO2, predict(slrm2, readdaily.df))#115.9172
+bar = barplot(readdaily.df$FALSTAFFNO2,readdaily.df$GENOVEVALAANNO2, main = "Falstaff vs Genovevalaan, Hourly Distribution NO2, January 2019", xlab = "Observations-->", ylab = "Values", col = c("darkblue","red"), besides = TRUE);bar
+bar = barplot(readdaily.df$GENOVEVALAANNO2, main = "Genovevalaan, Hourly Distribution NO2, January 2019", xlab = "Observations-->", ylab = "Values");bar
+bar = barplot(readdaily.df$BEUKENLAANNO2, main = "Beukenlaan, Hourly Distribution NO2, January 2019", xlab = "Observations-->", ylab = "Values");bar
+bar = barplot(readdaily.df$NOORDBRABANTLAANNO2, main = "NoordBrabantlaan, Hourly Distribution NO2, January 2019", xlab = "Observations-->", ylab = "Values");bar
+
+
